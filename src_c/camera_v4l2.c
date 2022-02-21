@@ -29,8 +29,8 @@ char **
 v4l2_list_cameras(int *num_devices)
 {
     char **devices;
-    char *device;
-    int num, i, fd;
+    char *device = NULL;
+    int num, i, j, fd;
 
     num = *num_devices;
 
@@ -41,7 +41,7 @@ v4l2_list_cameras(int *num_devices)
 
     device = (char *)malloc(sizeof(char) * 13);
     if (!device) {
-        return NULL;
+        goto error;
     }
 
     strcpy(device, "/dev/video");
@@ -50,13 +50,16 @@ v4l2_list_cameras(int *num_devices)
         devices[num] = device;
         num++;
         device = (char *)malloc(sizeof(char) * 13);
+        if (!device) {
+            goto error;
+        }
     }
     close(fd);
     /* v4l2 cameras can be /dev/video and /dev/video0 to /dev/video63 */
     for (i = 0; i < 64; i++) {
         int ret = PyOS_snprintf(device, 13, "/dev/video%d", i);
         if (ret < 0 || ret >= 13) {
-            return NULL;
+            goto error;
         }
 
         fd = open(device, O_RDONLY);
@@ -64,18 +67,26 @@ v4l2_list_cameras(int *num_devices)
             devices[num] = device;
             num++;
             device = (char *)malloc(sizeof(char) * 13);
+            if (!device) {
+                goto error;
+            }
         }
         close(fd);
     }
 
-    if (num == *num_devices) {
-        free(device);
-    }
-    else {
-        *num_devices = num;
-    }
-
+    /* Free device because it is always freshly allocated at this stage */
+    free(device);
+    *num_devices = num;
     return devices;
+
+error:
+    free(device);
+    /* free individial device already in devices array */
+    for (j = 0; j < num; j++) {
+        free(devices[j]);
+    }
+    free(devices);
+    return NULL;
 }
 
 /* A wrapper around a VIDIOC_S_FMT ioctl to check for format compatibility */
