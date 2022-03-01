@@ -1,10 +1,8 @@
-import os
-import sys
-import unittest
 import collections
+import time
+import unittest
 
 import pygame
-
 
 EVENT_TYPES = (
     #   pygame.NOEVENT,
@@ -124,6 +122,9 @@ class EventTypeTest(unittest.TestCase):
         for attr in attrs:
             self.assertIn(attr, d)
 
+        # redundant type field as kwarg
+        self.assertRaises(ValueError, pygame.event.Event, 10, type=100)
+
     def test_as_str(self):
         # Bug reported on Pygame mailing list July 24, 2011:
         # For Python 3.x str(event) to raises an UnicodeEncodeError when
@@ -133,6 +134,16 @@ class EventTypeTest(unittest.TestCase):
         except UnicodeEncodeError:
             self.fail("Event object raised exception for non-ascii character")
         # Passed.
+
+    def test_event_bool(self):
+        self.assertFalse(pygame.event.Event(pygame.NOEVENT))
+        for event_type in [
+            pygame.MOUSEBUTTONDOWN,
+            pygame.ACTIVEEVENT,
+            pygame.WINDOWLEAVE,
+            pygame.USEREVENT_DROPFILE,
+        ]:
+            self.assertTrue(pygame.event.Event(event_type))
 
 
 race_condition_notification = """
@@ -161,6 +172,11 @@ class EventModuleArgsTest(unittest.TestCase):
         pygame.event.get(eventtype=[pygame.KEYUP, pygame.KEYDOWN])
         pygame.event.get(eventtype=pygame.USEREVENT, pump=False)
 
+        # event type out of range
+        self.assertRaises(ValueError, pygame.event.get, 0x00010000)
+        self.assertRaises(TypeError, pygame.event.get, 1 + 2j)
+        self.assertRaises(TypeError, pygame.event.get, "foo")
+
     def test_clear(self):
         pygame.event.clear()
         pygame.event.clear(None)
@@ -172,6 +188,10 @@ class EventModuleArgsTest(unittest.TestCase):
         pygame.event.clear(eventtype=[pygame.KEYUP, pygame.KEYDOWN])
         pygame.event.clear(eventtype=pygame.USEREVENT, pump=False)
 
+        # event type out of range
+        self.assertRaises(ValueError, pygame.event.clear, 0x0010FFFFF)
+        self.assertRaises(TypeError, pygame.event.get, ["a", "b", "c"])
+
     def test_peek(self):
         pygame.event.peek()
         pygame.event.peek(None)
@@ -182,6 +202,14 @@ class EventModuleArgsTest(unittest.TestCase):
         pygame.event.peek(eventtype=None)
         pygame.event.peek(eventtype=[pygame.KEYUP, pygame.KEYDOWN])
         pygame.event.peek(eventtype=pygame.USEREVENT, pump=False)
+
+        class Foo:
+            pass
+
+        # event type out of range
+        self.assertRaises(ValueError, pygame.event.peek, -1)
+        self.assertRaises(ValueError, pygame.event.peek, [-10])
+        self.assertRaises(TypeError, pygame.event.peek, Foo())
 
 
 class EventCustomTypeTest(unittest.TestCase):
@@ -214,9 +242,11 @@ class EventCustomTypeTest(unittest.TestCase):
 
         The last allowed custom type number should be (pygame.NUMEVENTS - 1).
         """
+        last = -1
         start = pygame.event.custom_type() + 1
-        for i in range(start, pygame.NUMEVENTS):
+        for _ in range(start, pygame.NUMEVENTS):
             last = pygame.event.custom_type()
+
         self.assertEqual(last, pygame.NUMEVENTS - 1)
         with self.assertRaises(pygame.error):
             pygame.event.custom_type()
@@ -287,17 +317,29 @@ class EventModuleTest(unittest.TestCase):
     def test_set_blocked(self):
         """Ensure events can be blocked from the queue."""
         event = EVENT_TYPES[0]
+        unblocked_event = EVENT_TYPES[1]
         pygame.event.set_blocked(event)
 
         self.assertTrue(pygame.event.get_blocked(event))
+        self.assertFalse(pygame.event.get_blocked(unblocked_event))
 
-        pygame.event.post(
-            pygame.event.Event(event, **EVENT_TEST_PARAMS[EVENT_TYPES[0]])
+        posted = pygame.event.post(
+            pygame.event.Event(event, **EVENT_TEST_PARAMS[event])
         )
+        self.assertFalse(posted)
+
+        # post an unblocked event
+        posted = pygame.event.post(
+            pygame.event.Event(unblocked_event, **EVENT_TEST_PARAMS[unblocked_event])
+        )
+        self.assertTrue(posted)
+
         ret = pygame.event.get()
         should_be_blocked = [e for e in ret if e.type == event]
+        should_be_allowed_types = [e.type for e in ret if e.type != event]
 
         self.assertEqual(should_be_blocked, [])
+        self.assertTrue(unblocked_event in should_be_allowed_types)
 
     def test_set_blocked__event_sequence(self):
         """Ensure a sequence of event types can be blocked."""
@@ -307,6 +349,8 @@ class EventModuleTest(unittest.TestCase):
             pygame.MOUSEMOTION,
             pygame.MOUSEBUTTONDOWN,
             pygame.MOUSEBUTTONUP,
+            pygame.WINDOWFOCUSLOST,
+            pygame.USEREVENT,
         ]
 
         pygame.event.set_blocked(event_types)
@@ -360,11 +404,16 @@ class EventModuleTest(unittest.TestCase):
             self.assertEqual(e, posted_event, race_condition_notification)
 
     def test_post_large_user_event(self):
-        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {"a": "a" * 1024}))
+        pygame.event.post(
+            pygame.event.Event(
+                pygame.USEREVENT, {"a": "a" * 1024}, test=list(range(100))
+            )
+        )
         e = pygame.event.poll()
 
         self.assertEqual(e.type, pygame.USEREVENT)
         self.assertEqual(e.a, "a" * 1024)
+        self.assertEqual(e.test, list(range(100)))
 
     def test_post_blocked(self):
         """
@@ -498,6 +547,11 @@ class EventModuleTest(unittest.TestCase):
 
         self._assertExpectedEvents(expected=expected_events, got=retrieved_events)
 
+    def test_get_clears_queue(self):
+        """Ensure get() clears the event queue after a call"""
+        pygame.event.get()  # should clear the queue completely by getting all events
+        self.assertEqual(pygame.event.get(), [])
+
     def test_clear(self):
         """Ensure clear() removes all the events on the queue."""
         for e in EVENT_TYPES:
@@ -587,15 +641,42 @@ class EventModuleTest(unittest.TestCase):
         self.assertEqual(wait_event.type, event.type)
 
         # Test case with timeout and no event in the queue.
-        wait_event = pygame.event.wait(250)
+        wait_event = pygame.event.wait(100)
         self.assertEqual(wait_event.type, pygame.NOEVENT)
 
         # Test case with timeout and an event in the queue.
         event = pygame.event.Event(EVENT_TYPES[0], **EVENT_TEST_PARAMS[EVENT_TYPES[0]])
         pygame.event.post(event)
-        wait_event = pygame.event.wait(250)
+        wait_event = pygame.event.wait(100)
 
         self.assertEqual(wait_event.type, event.type)
+
+        # test wait with timeout waits for the correct duration
+        pygame.time.set_timer(pygame.USEREVENT, 50, 3)
+
+        for wait_time, expected_type, expected_time in (
+            (60, pygame.USEREVENT, 50),
+            (65, pygame.USEREVENT, 50),
+            (20, pygame.NOEVENT, 20),
+            (45, pygame.USEREVENT, 30),
+            (70, pygame.NOEVENT, 70),
+        ):
+            start_time = time.perf_counter()
+            self.assertEqual(pygame.event.wait(wait_time).type, expected_type)
+            self.assertAlmostEqual(
+                time.perf_counter() - start_time, expected_time / 1000, delta=0.01
+            )
+
+        # test wait without timeout waits for the full duration
+        pygame.time.set_timer(pygame.USEREVENT, 100, 1)
+
+        start_time = time.perf_counter()
+        self.assertEqual(pygame.event.wait().type, pygame.USEREVENT)
+        self.assertAlmostEqual(time.perf_counter() - start_time, 0.1, delta=0.01)
+
+        # test wait returns no event if event is arriving later
+        pygame.time.set_timer(pygame.USEREVENT, 50, 1)
+        self.assertEqual(pygame.event.wait(40).type, pygame.NOEVENT)
 
     def test_peek(self):
         """Ensure queued events can be peeked at."""
@@ -778,6 +859,8 @@ class EventModuleTest(unittest.TestCase):
             pygame.MOUSEMOTION,
             pygame.MOUSEBUTTONDOWN,
             pygame.MOUSEBUTTONUP,
+            pygame.WINDOWMINIMIZED,
+            pygame.USEREVENT,
         ]
 
         # Test no event types in the list are blocked.
