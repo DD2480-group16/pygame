@@ -7,6 +7,7 @@ and debugging.
 
 from collections import namedtuple
 from math import floor, ceil
+import copy
 
 
 #   H E L P E R   F U N C T I O N S    #
@@ -562,3 +563,29 @@ def _draw_polygon_inner_loop(index, point_x, point_y, y_coord, x_intersect):
 
     if (y_2 > y_coord >= y_1) or ((y_coord == max(point_y)) and (y_coord <= y_2)):
         x_intersect.append((y_coord - y_1) * (x_2 - x_1) // (y_2 - y_1) + x_1)
+
+
+def draw_rounded_polygon(surface, color, points, width):
+    # do some stuff
+    new_points = []
+    for i in range(0, len(points)):
+        temp = [] # their function
+        temp = _decasteljau_algorithm(temp, 10)
+        for j in range(0, len(temp)):
+            new_points.append(temp[j])
+
+    draw_polygon(surface, color, new_points, width)
+
+
+def _decasteljau_algorithm(points, smoothing):
+    new_points = copy.deepcopy(points) #not sure this is how a deepcopy is made
+    while len(new_points) < smoothing:
+        temp_array = []
+        for i in range(0, len(new_points)-1):
+            temp_array[i] = tuple(sum(x) for x in zip(tuple(0.75*x for x in new_points[i]), tuple(0.25*x for x in new_points[i+1])))
+            temp_array[i+1] = tuple(sum(x) for x in zip(tuple(0.75*x for x in new_points[i+1]), tuple(0.25*x for x in new_points[i])))
+        new_points = temp_array
+
+
+    return new_points
+
