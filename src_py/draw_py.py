@@ -6,12 +6,18 @@ and debugging.
 """
 
 from collections import namedtuple
-from math import floor, ceil
+from math import floor, ceil, sqrt
 
 
 #   H E L P E R   F U N C T I O N S    #
 
+# distance between points
+
+def point_dist(p0, p1):
+    return sqrt((p1[0] - p0[0])*(p1[0] - p0[0]) + (p1[1] - p0[1])*(p1[1] - p0[1]))
+
 # fractional part of x
+
 
 
 def frac(value):
@@ -541,6 +547,32 @@ def draw_polygon(surface, color, points, width):
             )
 
     return  # TODO Rect(...)
+
+
+def draw_polygon_rounded(surface, color, points, width, radius, smoothing):
+    # Insert new Points with Distance Radius between existing points
+    num_points = len(points)
+    final_points = []
+
+    for i in range(num_points):
+        smooth_curve_segment = []
+        dist_back = point_dist(points[i], points[i-1])
+        dist_front = point_dist(points[i], points[(i+1)% num_points])
+
+        rad_back = min(point_dist(points[i], points[i-1])/2, radius)
+        rad_front = min(point_dist(points[i], points[(i+1) % num_points])/2, radius)
+
+        dist_vec_back = [((points[i-1][0] - points[i][0])/dist_back)*rad_back, ((points[i-1][1] - points[i][1])/dist_back)*rad_back]
+        dist_vec_front = [((points[(i+1) % num_points][0] - points[i][0])/dist_front)*rad_front, ((points[(i+1) % num_points][1] - points[i][1])/dist_front)*rad_front]
+
+        smooth_curve_segment.append([points[i][0] + dist_vec_back[0], points[i][1] + dist_vec_back[1]])
+        smooth_curve_segment.append(points[i])  # Add original point
+        smooth_curve_segment.append([points[i][0] + dist_vec_front[0], points[i][1] + dist_vec_front[1]])
+
+        smooth_curve_segment.append(de_castilejou_algortihm(smooth_curve_segment, radius, smoothing))
+
+    # Perform The De Casteljau Algorithm 'smoothing' times
+    draw_polygon(surface, color, points, width)
 
 
 def _draw_polygon_inner_loop(index, point_x, point_y, y_coord, x_intersect):
