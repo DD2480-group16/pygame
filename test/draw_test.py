@@ -190,6 +190,7 @@ class PythonDrawTestCase(unittest.TestCase):
     draw_lines = staticmethod(draw_py.draw_lines)
     draw_aaline = staticmethod(draw_py.draw_aaline)
     draw_aalines = staticmethod(draw_py.draw_aalines)
+    decasteljau_algorithm = staticmethod(draw_py.decasteljau_algorithm)
 
 
 ### Ellipse Testing ###########################################################
@@ -4422,6 +4423,10 @@ class DrawPolygonMixin:
                     self.assertEqual(surface.get_at(pt), expected_color, pt)
 
                 surface.unlock()
+    
+    def test_rounded_polygon(self):
+        points = self.decasteljau_algorithm([tuple(1, 0), tuple(1, 1), tuple(0, 1)], 10)
+        self.assertEqual(len(points), 10)
 
 
 class DrawPolygonTest(DrawPolygonMixin, DrawTestCase):

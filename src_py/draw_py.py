@@ -6,13 +6,19 @@ and debugging.
 """
 
 from collections import namedtuple
-from math import floor, ceil
+from math import floor, ceil, sqrt
 import copy
 
 
 #   H E L P E R   F U N C T I O N S    #
 
+# distance between points
+
+def point_dist(p0, p1):
+    return sqrt((p1[0] - p0[0])*(p1[0] - p0[0]) + (p1[1] - p0[1])*(p1[1] - p0[1]))
+
 # fractional part of x
+
 
 
 def frac(value):
@@ -544,6 +550,32 @@ def draw_polygon(surface, color, points, width):
     return  # TODO Rect(...)
 
 
+def draw_polygon_rounded(surface, color, points, width, radius, smoothing):
+    # Insert new Points with Distance Radius between existing points
+    num_points = len(points)
+    final_points = []
+
+    for i in range(num_points):
+        smooth_curve_segment = []
+        dist_back = point_dist(points[i], points[i-1])
+        dist_front = point_dist(points[i], points[(i+1)% num_points])
+
+        rad_back = min(point_dist(points[i], points[i-1])/2, radius)
+        rad_front = min(point_dist(points[i], points[(i+1) % num_points])/2, radius)
+
+        dist_vec_back = [((points[i-1][0] - points[i][0])/dist_back)*rad_back, ((points[i-1][1] - points[i][1])/dist_back)*rad_back]
+        dist_vec_front = [((points[(i+1) % num_points][0] - points[i][0])/dist_front)*rad_front, ((points[(i+1) % num_points][1] - points[i][1])/dist_front)*rad_front]
+
+        smooth_curve_segment.append([points[i][0] + dist_vec_back[0], points[i][1] + dist_vec_back[1]])
+        smooth_curve_segment.append(points[i])  # Add original point
+        smooth_curve_segment.append([points[i][0] + dist_vec_front[0], points[i][1] + dist_vec_front[1]])
+
+        final_points.append(_decasteljau_algorithm(smooth_curve_segment, smoothing))
+
+    # Perform The De Casteljau Algorithm 'smoothing' times
+    draw_polygon(surface, color, final_points, width)
+
+
 def _draw_polygon_inner_loop(index, point_x, point_y, y_coord, x_intersect):
     i_prev = index - 1 if index else len(point_x) - 1
 
@@ -565,20 +597,20 @@ def _draw_polygon_inner_loop(index, point_x, point_y, y_coord, x_intersect):
         x_intersect.append((y_coord - y_1) * (x_2 - x_1) // (y_2 - y_1) + x_1)
 
 
-def draw_rounded_polygon(surface, color, points, width):
-    # do some stuff
-    new_points = []
-    for i in range(0, len(points)):
-        temp = [] # their function
-        temp = _decasteljau_algorithm(temp, 10)
-        for j in range(0, len(temp)):
-            new_points.append(temp[j])
+# def draw_rounded_polygon(surface, color, points, width):
+#     # do some stuff
+#     new_points = []
+#     for i in range(0, len(points)):
+#         temp = [] # their function
+#         temp = _decasteljau_algorithm(temp, 10)
+#         for j in range(0, len(temp)):
+#             new_points.append(temp[j])
 
-    draw_polygon(surface, color, new_points, width)
+#     draw_polygon(surface, color, new_points, width)
 
 
-def _decasteljau_algorithm(points, smoothing):
-    new_points = copy.deepcopy(points) #not sure this is how a deepcopy is made
+def decasteljau_algorithm(points, smoothing):
+    new_points = copy.deepcopy(points)
     while len(new_points) < smoothing:
         temp_array = []
         for i in range(0, len(new_points)-1):
