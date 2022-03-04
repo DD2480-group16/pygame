@@ -550,6 +550,16 @@ def draw_polygon(surface, color, points, width):
 
 
 def draw_polygon_rounded(surface, color, points, width, radius, smoothing):
+    #Get Rounded Polygon
+    rounded_points = _get_polygon_rounded(points, radius, smoothing)
+
+    # Remove duplicate Points
+
+
+    # Perform The De Casteljau Algorithm 'smoothing' times
+    draw_polygon(surface, color, points, width)
+
+def _get_polygon_rounded(points, radius, smoothing):
     # Insert new Points with Distance Radius between existing points
     num_points = len(points)
     final_points = []
@@ -569,10 +579,24 @@ def draw_polygon_rounded(surface, color, points, width, radius, smoothing):
         smooth_curve_segment.append(points[i])  # Add original point
         smooth_curve_segment.append([points[i][0] + dist_vec_front[0], points[i][1] + dist_vec_front[1]])
 
-        smooth_curve_segment.append(de_castilejou_algortihm(smooth_curve_segment, radius, smoothing))
+        final_points.append(de_castilejou_algortihm(smooth_curve_segment, radius, smoothing))
+        final_points = _remove_duplicate_points(final_points)
+    return final_points
 
-    # Perform The De Casteljau Algorithm 'smoothing' times
-    draw_polygon(surface, color, points, width)
+
+def _remove_duplicate_points(points):
+    """
+    Removes any neighbouring duplicate vertices from a polygon
+    :param points:
+    :return: a list of touple points that has no duplicates
+    """
+    num_points = len(points)
+    return_points = []
+    for i in range(num_points):
+        if not (points[i][0] == points[i-1][0] and points[i][1] == points[i-1][1]):
+            return_points.append(points[i])
+
+    return return_points
 
 
 def _draw_polygon_inner_loop(index, point_x, point_y, y_coord, x_intersect):

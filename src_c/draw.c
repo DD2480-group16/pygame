@@ -749,6 +749,123 @@ circle(PyObject *self, PyObject *args, PyObject *kwargs)
         return pgRect_New4(posx, posy, 0, 0);
 }
 
+static pyObject *
+polygon_rouned(PyObject *self, PyObject *arg, pyObject *kwargs)
+{
+    pgSurfaceObject *surfobj;
+    PyObject *colorobj, *points, *item = NULL;
+    SDL_Surface *surf = NULL;
+    Uint8 rgba[4];
+    Uint32 color;
+    int *xlist = NULL, *ylist = NULL;
+    int width = 0; /* Default width. */
+    int x, y, result, l, t;
+    int drawn_area[4] = {INT_MAX, INT_MAX, INT_MIN,
+                         INT_MIN}; /* Used to store bounding box values */
+    Py_ssize_t loop, length;
+    static char *keywords[] = {"surface", "color", "points", "width", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OO|i", keywords,
+                                     &pgSurface_Type, &surfobj, &colorobj,
+                                     &points, &width)) {
+        return NULL; /* Exception already set. */
+    }
+
+    if (width) {
+        PyObject *ret = NULL;
+        PyObject *args =
+            Py_BuildValue("(OOiOi)", surfobj, colorobj, 1, points, width);
+
+        if (!args) {
+            return NULL; /* Exception already set. */
+        }
+
+        ret = lines(NULL, args, NULL);
+        Py_DECREF(args);
+        return ret;
+    }
+
+    surf = pgSurface_AsSurface(surfobj);
+
+    if (surf->format->BytesPerPixel <= 0 || surf->format->BytesPerPixel > 4) {
+        return PyErr_Format(PyExc_ValueError,
+                            "unsupported surface bit depth (%d) for drawing",
+                            surf->format->BytesPerPixel);
+    }
+
+    CHECK_LOAD_COLOR(colorobj)
+
+    /* PERFORM POINT SPLITS AND DE CASTELJAU HERE */
+
+
+    if (!PySequence_Check(points)) {
+        return RAISE(PyExc_TypeError,
+                     "points argument must be a sequence of number pairs");
+    }
+
+    length = PySequence_Length(points);
+
+    if (length < 3) {
+        return RAISE(PyExc_ValueError,
+                     "points argument must contain more than 2 points");
+    }
+
+    xlist = PyMem_New(int, length);
+    ylist = PyMem_New(int, length);
+
+    if (NULL == xlist || NULL == ylist) {
+        if (xlist) {
+            PyMem_Free(xlist);
+        }
+        if (ylist) {
+            PyMem_Free(ylist);
+        }
+        return RAISE(PyExc_MemoryError,
+                     "cannot allocate memory to draw polygon");
+    }
+
+    for (loop = 0; loop < length; ++loop) {
+        item = PySequence_GetItem(points, loop);
+        result = pg_TwoIntsFromObj(item, &x, &y);
+        if (loop == 0) {
+            l = x;
+            t = y;
+        }
+        Py_DECREF(item);
+
+        if (!result) {
+            PyMem_Free(xlist);
+            PyMem_Free(ylist);
+            return RAISE(PyExc_TypeError, "points must be number pairs");
+        }
+
+        xlist[loop] = x;
+        ylist[loop] = y;
+    }
+
+    if (!pgSurface_Lock(surfobj)) {
+        PyMem_Free(xlist);
+        PyMem_Free(ylist);
+        return RAISE(PyExc_RuntimeError, "error locking surface");
+    }
+
+    draw_fillpoly(surf, xlist, ylist, length, color, drawn_area);
+    PyMem_Free(xlist);
+    PyMem_Free(ylist);
+
+    if (!pgSurface_Unlock(surfobj)) {
+        return RAISE(PyExc_RuntimeError, "error unlocking surface");
+    }
+
+    if (drawn_area[0] != INT_MAX && drawn_area[1] != INT_MAX &&
+        drawn_area[2] != INT_MIN && drawn_area[3] != INT_MIN)
+        return pgRect_New4(drawn_area[0], drawn_area[1],
+                           drawn_area[2] - drawn_area[0] + 1,
+                           drawn_area[3] - drawn_area[1] + 1);
+    else
+        return pgRect_New4(l, t, 0, 0);
+}
+
 static PyObject *
 polygon(PyObject *self, PyObject *arg, PyObject *kwargs)
 {
