@@ -80,6 +80,8 @@ static void
 draw_round_rect(SDL_Surface *surf, int x1, int y1, int x2, int y2, int radius,
                 int width, Uint32 color, int top_left, int top_right,
                 int bottom_left, int bottom_right, int *drawn_area);
+static void
+decasteljau_algorithm(int *vx, int *vy, int length, int smoothing);
 
 // validation of a draw color
 #define CHECK_LOAD_COLOR(colorobj)                                         \
@@ -2462,6 +2464,34 @@ draw_round_rect(SDL_Surface *surf, int x1, int y1, int x2, int y2, int radius,
                              y2 - bottom_right + 1, bottom_right, width, color,
                              0, 0, 0, 1, drawn_area);
     }
+}
+
+static void
+decasteljau_algorithm(int *vx, int *vy, int length, int smoothing){
+// Copy array pointer, don't know if it is a deepcopy but need to increase amount of slots in array.
+  int i;
+  float new_xvector[smoothing];
+  float new_yvector[smoothing];
+  for (i = 0; i < length; i++){
+    new_xvector[i] = *(vx + 1);
+    new_yvector[i] = *(vy  + 1);
+  }
+  float *new_xpoints = &new_xvector;
+  float *new_ypoints = &new_yvector;
+  float xbefore, xafter, yafter, ybefore;
+  int loop = length;
+  while(loop < smoothing){
+    for (i = 0; i < length-1; i++) {
+      xbefore = *(new_xpoints + i);
+      xafter = *(new_xpoints + i + 1);
+      *(new_xpoints + i) = (xbefore * 0.75) + (xafter * 0.25);
+      *(new_xpoints + i + 1) = (xbefore * 0.25) + (xafter * 0.75);
+      *(new_ypoints + i) = (ybefore * 0.75) + (yafter * 0.25);
+      *(new_ypoints + i + 1) = (ybefore * 0.25) + (yafter * 0.75);
+    }
+    loop++;
+  }
+
 }
 
 /* List of python functions */
