@@ -38,6 +38,12 @@
 #endif
 
 /* Declaration of drawing algorithms */
+static double
+point_distance(int p0x, int p0y, int p1x, int p1y);
+
+static double
+de_casteljau(int p0, int p1, int p2, double t);
+
 static void
 draw_line_width(SDL_Surface *surf, Uint32 color, int x1, int y1, int x2,
                 int y2, int width, int *drawn_area);
@@ -750,7 +756,7 @@ circle(PyObject *self, PyObject *args, PyObject *kwargs)
 }
 
 static pyObject *
-polygon_rouned(PyObject *self, PyObject *arg, pyObject *kwargs)
+polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
 {
     pgSurfaceObject *surfobj;
     PyObject *colorobj, *points, *item = NULL;
@@ -762,12 +768,12 @@ polygon_rouned(PyObject *self, PyObject *arg, pyObject *kwargs)
     int x, y, result, l, t;
     int drawn_area[4] = {INT_MAX, INT_MAX, INT_MIN,
                          INT_MIN}; /* Used to store bounding box values */
-    Py_ssize_t loop, length;
-    static char *keywords[] = {"surface", "color", "points", "width", NULL};
+    Py_ssize_t loop, length, new_length, inner_loop;
+    static char *keywords[] = {"surface", "color", "points", "width", "radius", "smoothing" NULL};
 
     if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OO|i", keywords,
                                      &pgSurface_Type, &surfobj, &colorobj,
-                                     &points, &width)) {
+                                     &points, &width, &radius, &smoothing)) {
         return NULL; /* Exception already set. */
     }
 
@@ -794,9 +800,6 @@ polygon_rouned(PyObject *self, PyObject *arg, pyObject *kwargs)
     }
 
     CHECK_LOAD_COLOR(colorobj)
-
-    /* PERFORM POINT SPLITS AND DE CASTELJAU HERE */
-
 
     if (!PySequence_Check(points)) {
         return RAISE(PyExc_TypeError,
@@ -843,15 +846,84 @@ polygon_rouned(PyObject *self, PyObject *arg, pyObject *kwargs)
         ylist[loop] = y;
     }
 
+    /* This is where the magic happens */
+
+    /* I assume all points are handled as integers since pixels are discrete. */
+
+    /* This algorithm does not currently take into account overlapping
+    points in the case of radius being set to really large numbers */
+
+    /* Bezier function: x = ((1-t)*((1-t) * p0x + (t * p1x)) + (t * ((1-t)*p1x p (t * p2x))) */
+    /* Bezier function: y = ((1-t)*((1-t) * p0y + (t * p1y)) + (t * ((1-t)*p1y p (t * p2y))) */
+
+    x_list_new = pyMem_New(int, length*(3+smoothing));
+    y_list_new = pyMem_New(int, length*(3+smoothing));
+
+    new_length          = length*(3+smoothing);
+    int current_index   = 0;
+    int previous_index  = 2; /* This is set to different from current_index to trigger on first entry of the loop*/
+    int p0x, p0y, p1x, p1y, p2x, p2y;
+    int dist_back_x, dist_back_y, dist_front_x, dist_front_y;
+    double back_rad, front_rad;
+    double t = 0;
+
+    for(loop = 0; loop < length*(3+smoothing); ++loop) {
+        current_index = loop/(3+smoothing)
+        if (previous_index != current_index){ /* This is where we find the new three base points per original point */
+            previous_index = current_index;
+
+            p0x = xlist[(current_index - 1) % length]; /* length is of type ssize_t, hope it works and iplicity casts it */
+            p0y = ylist[(current_index - 1) % length];
+
+            p1x = xlist[current_index];
+            p1y = ylist[current_index];
+
+            p2x = xlist[(current_index + 1) % length];
+            p2y = ylist[(current_index + 1) % length];
+
+            rad_back    = point_distance(p0x, p0y, p1x, p1y);
+            rad_front   = point_distance(p0x, p0y, p1x, p1y);
+
+            /* Cap Radius at max half way distance */
+            rad_back    = (double(radius) > (rad_back * 0.5d)) ? rad_back * 0.5d : double(radius);
+            rad_front   = (double(radius) > (rad_front * 0.5d)) ? rad_front * 0.5d : double(radius);
+
+            dist_back_x = (int) ((((double)(p0x - p1x)) / point_distance(p0x, p0y, p1x, p1y)) * rad_back);
+            dist_back_y = (int) ((((double)(p0y - p1y)) / point_distance(p0x, p0y, p1x, p1y)) * rad_back);
+
+            dist_front_x = (int) ((((double)(p2x - p1x)) / point_distance(p2x, p2y, p1x, p1y)) * rad_front);
+            dist_front_x = (int) ((((double)(p2y - p1y)) / point_distance(p2x, p2y, p1x, p1y)) * rad_front);
+
+            /* Assign The correct locations of p0 and p2 */
+            p0x = p1x + dist_back_x;
+            p0y = p1y + dist_back_y;
+            p2x = p1x + dist_front_x;
+            p2y = p1y + dist_front_x;
+        }
+        /* Not sure how this works with casting between ints and ssize_t */
+        t = (((double)(loop%(3 + smoothing))) * (1.0d / (3.0d + ((double)smoothing))));
+
+        x_list_new[loop] = (int) de_casteljau(p0x, p1x, p2x, t);
+        y_list_new[loop] = (int) de_casteljau(p0y, p1y, p2y, t);
+
+    }
+
+    /* This is where the magic ends (except for some PyMem_Free a bit down)*/
+
     if (!pgSurface_Lock(surfobj)) {
         PyMem_Free(xlist);
         PyMem_Free(ylist);
+
+        PyMem_Free(x_list_new);
+        PyMem_Free(y_list_new);
         return RAISE(PyExc_RuntimeError, "error locking surface");
     }
 
-    draw_fillpoly(surf, xlist, ylist, length, color, drawn_area);
+    draw_fillpoly(surf, x_list_new, y_list_new, new_length, color, drawn_area);
     PyMem_Free(xlist);
     PyMem_Free(ylist);
+    PyMem_Free(x_list_new);
+    PyMem_Free(y_list_new);
 
     if (!pgSurface_Unlock(surfobj)) {
         return RAISE(PyExc_RuntimeError, "error unlocking surface");
@@ -1111,6 +1183,18 @@ swap(float *a, float *b)
     float temp = *a;
     *a = *b;
     *b = temp;
+}
+
+static double
+point_distance(int p0x, int p0y, int p1x, int p1y)
+{
+    return math.sqrt(double(((p0x - p1x) * (p0x-p1x)) + ((p0y - p1y)*(p0y - p1y))));
+}
+
+static double
+de_casteljau(int p0, int p1, int p2, double t)
+{
+    return ((1.0d-t)*((1.0d-t) * (double)p0 + (t * (double)p1)) + (t * ((1.0d-t) * (double)x1 + (t * (double)x2))));
 }
 
 static int
