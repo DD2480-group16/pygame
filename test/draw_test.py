@@ -168,6 +168,7 @@ class DrawTestCase(unittest.TestCase):
 
     draw_rect = staticmethod(draw.rect)
     draw_polygon = staticmethod(draw.polygon)
+    draw_rounded_polygon = staticmethod(draw.polygon_rounded)
     draw_circle = staticmethod(draw.circle)
     draw_ellipse = staticmethod(draw.ellipse)
     draw_arc = staticmethod(draw.arc)
@@ -4441,6 +4442,51 @@ class DrawPolygonTest(DrawPolygonMixin, DrawTestCase):
 #    This class inherits the general tests from DrawPolygonMixin. It is also
 #    the class to add any draw_py.draw_polygon specific tests to.
 #    """
+
+### Rounded Polygon Testing ###########################################################
+
+SQUARE = ([0, 0], [3, 0], [3, 3], [0, 3])
+DIAMOND = [(1, 3), (3, 5), (5, 3), (3, 1)]
+CROSS = (
+    [2, 0],
+    [4, 0],
+    [4, 2],
+    [6, 2],
+    [6, 4],
+    [4, 4],
+    [4, 6],
+    [2, 6],
+    [2, 4],
+    [0, 4],
+    [0, 2],
+    [2, 2],
+)
+
+
+class DrawRoundedPolygonMixin:
+    """Mixin tests for drawing polygons with rounded corners.
+
+    This class contains all the general rounded polygon drawing tests.
+    """
+
+    def test_rounded_polygon__kwargs(self):
+        """Ensures draw rounded polygon accepts the correct kwargs
+        with and without a width arg.
+        """
+        surface = pygame.Surface((4, 4))
+        color = pygame.Color("yellow")
+        points = ((0, 0), (1, 1), (2, 2))
+        radius = 1
+        smoothing = 3
+        kwargs_list = [
+            {"surface": surface, "color": color, "points": points, "width": 1, "radius": radius, "smoothing": smoothing},
+            {"surface": surface, "color": color, "points": points, "radius": radius, "smoothing": smoothing},
+        ]
+
+        for kwargs in kwargs_list:
+            bounds_rect = self.draw_rounded_polygon(**kwargs)
+
+            self.assertIsInstance(bounds_rect, pygame.Rect)
 
 
 ### Rect Testing ##############################################################

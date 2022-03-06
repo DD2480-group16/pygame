@@ -755,21 +755,21 @@ circle(PyObject *self, PyObject *args, PyObject *kwargs)
         return pgRect_New4(posx, posy, 0, 0);
 }
 
-static pyObject *
-polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
+static PyObject *
+polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
 {
     pgSurfaceObject *surfobj;
     PyObject *colorobj, *points, *item = NULL;
     SDL_Surface *surf = NULL;
     Uint8 rgba[4];
     Uint32 color;
-    int *xlist = NULL, *ylist = NULL;
+    int *xlist = NULL, *ylist = NULL, *x_list_new = NULL, *y_list_new = NULL;
     int width = 0; /* Default width. */
-    int x, y, result, l, t;
+    int x, y, result, l, r, radius, smoothing;
     int drawn_area[4] = {INT_MAX, INT_MAX, INT_MIN,
                          INT_MIN}; /* Used to store bounding box values */
     Py_ssize_t loop, length, new_length, inner_loop;
-    static char *keywords[] = {"surface", "color", "points", "width", "radius", "smoothing" NULL};
+    static char *keywords[] = {"surface", "color", "points", "width", "radius", "smoothing", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OO|i", keywords,
                                      &pgSurface_Type, &surfobj, &colorobj,
@@ -832,7 +832,7 @@ polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
         result = pg_TwoIntsFromObj(item, &x, &y);
         if (loop == 0) {
             l = x;
-            t = y;
+            r = y;
         }
         Py_DECREF(item);
 
@@ -856,8 +856,8 @@ polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
     /* Bezier function: x = ((1-t)*((1-t) * p0x + (t * p1x)) + (t * ((1-t)*p1x p (t * p2x))) */
     /* Bezier function: y = ((1-t)*((1-t) * p0y + (t * p1y)) + (t * ((1-t)*p1y p (t * p2y))) */
 
-    x_list_new = pyMem_New(int, length*(3+smoothing));
-    y_list_new = pyMem_New(int, length*(3+smoothing));
+    x_list_new = PyMem_New(int, length*(3+smoothing));
+    y_list_new = PyMem_New(int, length*(3+smoothing));
 
     new_length          = length*(3+smoothing);
     int current_index   = 0;
@@ -868,7 +868,7 @@ polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
     double t = 0;
 
     for(loop = 0; loop < length*(3+smoothing); ++loop) {
-        current_index = loop/(3+smoothing)
+        current_index = loop/(3+smoothing);
         if (previous_index != current_index){ /* This is where we find the new three base points per original point */
             previous_index = current_index;
 
@@ -881,18 +881,18 @@ polygon_rounded(PyObject *self, PyObject *arg, pyObject *kwargs)
             p2x = xlist[(current_index + 1) % length];
             p2y = ylist[(current_index + 1) % length];
 
-            rad_back    = point_distance(p0x, p0y, p1x, p1y);
-            rad_front   = point_distance(p0x, p0y, p1x, p1y);
+            back_rad    = point_distance(p0x, p0y, p1x, p1y);
+            front_rad   = point_distance(p0x, p0y, p1x, p1y);
 
             /* Cap Radius at max half way distance */
-            rad_back    = (double(radius) > (rad_back * 0.5d)) ? rad_back * 0.5d : double(radius);
-            rad_front   = (double(radius) > (rad_front * 0.5d)) ? rad_front * 0.5d : double(radius);
+            back_rad    = ((double) radius > (back_rad * 0.5d)) ? back_rad * 0.5d : (double) radius;
+            front_rad   = ((double) radius > (front_rad * 0.5d)) ? front_rad * 0.5d : (double) radius;
 
-            dist_back_x = (int) ((((double)(p0x - p1x)) / point_distance(p0x, p0y, p1x, p1y)) * rad_back);
-            dist_back_y = (int) ((((double)(p0y - p1y)) / point_distance(p0x, p0y, p1x, p1y)) * rad_back);
+            dist_back_x = (int) ((((double)(p0x - p1x)) / point_distance(p0x, p0y, p1x, p1y)) * back_rad);
+            dist_back_y = (int) ((((double)(p0y - p1y)) / point_distance(p0x, p0y, p1x, p1y)) * back_rad);
 
-            dist_front_x = (int) ((((double)(p2x - p1x)) / point_distance(p2x, p2y, p1x, p1y)) * rad_front);
-            dist_front_x = (int) ((((double)(p2y - p1y)) / point_distance(p2x, p2y, p1x, p1y)) * rad_front);
+            dist_front_x = (int) ((((double)(p2x - p1x)) / point_distance(p2x, p2y, p1x, p1y)) * front_rad);
+            dist_front_x = (int) ((((double)(p2y - p1y)) / point_distance(p2x, p2y, p1x, p1y)) * front_rad);
 
             /* Assign The correct locations of p0 and p2 */
             p0x = p1x + dist_back_x;
@@ -1188,13 +1188,13 @@ swap(float *a, float *b)
 static double
 point_distance(int p0x, int p0y, int p1x, int p1y)
 {
-    return math.sqrt(double(((p0x - p1x) * (p0x-p1x)) + ((p0y - p1y)*(p0y - p1y))));
+    return sqrt((double)(((p0x - p1x) * (p0x-p1x)) + ((p0y - p1y)*(p0y - p1y))));
 }
 
 static double
 de_casteljau(int p0, int p1, int p2, double t)
 {
-    return ((1.0d-t)*((1.0d-t) * (double)p0 + (t * (double)p1)) + (t * ((1.0d-t) * (double)x1 + (t * (double)x2))));
+    return ((1.0d-t)*((1.0d-t) * (double)p0 + (t * (double)p1)) + (t * ((1.0d-t) * (double)p1 + (t * (double)p2))));
 }
 
 static int
