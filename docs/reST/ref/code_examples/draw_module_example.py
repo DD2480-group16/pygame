@@ -38,53 +38,53 @@ while not done:
     # Clear the screen and set the screen background
     screen.fill(WHITE)
  
-    # # Draw on the screen a GREEN line from (0, 0) to (50, 30) 
-    # # 5 pixels wide.
-    # pygame.draw.line(screen, GREEN, [0, 0], [50,30], 5)
+    # Draw on the screen a GREEN line from (0, 0) to (50, 30) 
+    # 5 pixels wide.
+    pygame.draw.line(screen, GREEN, [0, 0], [50,30], 5)
  
-    # # Draw on the screen 3 BLACK lines, each 5 pixels wide.
-    # # The 'False' means the first and last points are not connected.
-    # pygame.draw.lines(screen, BLACK, False, [[0, 80], [50, 90], [200, 80], [220, 30]], 5)
+    # Draw on the screen 3 BLACK lines, each 5 pixels wide.
+    # The 'False' means the first and last points are not connected.
+    pygame.draw.lines(screen, BLACK, False, [[0, 80], [50, 90], [200, 80], [220, 30]], 5)
     
-    # # Draw on the screen a GREEN line from (0, 50) to (50, 80) 
-    # # Because it is an antialiased line, it is 1 pixel wide.
-    # pygame.draw.aaline(screen, GREEN, [0, 50],[50, 80], True)
+    # Draw on the screen a GREEN line from (0, 50) to (50, 80) 
+    # Because it is an antialiased line, it is 1 pixel wide.
+    pygame.draw.aaline(screen, GREEN, [0, 50],[50, 80], True)
 
-    # # Draw a rectangle outline
-    # pygame.draw.rect(screen, BLACK, [75, 10, 50, 20], 2)
+    # Draw a rectangle outline
+    pygame.draw.rect(screen, BLACK, [75, 10, 50, 20], 2)
      
-    # # Draw a solid rectangle
-    # pygame.draw.rect(screen, BLACK, [150, 10, 50, 20])
+    # Draw a solid rectangle
+    pygame.draw.rect(screen, BLACK, [150, 10, 50, 20])
 
-    # # Draw a rectangle with rounded corners
-    # pygame.draw.rect(screen, GREEN, [115, 210, 70, 40], 10, border_radius=15)
-    # pygame.draw.rect(screen, RED, [135, 260, 50, 30], 0, border_radius=10, border_top_left_radius=0,
-    #                  border_bottom_right_radius=15)
+    # Draw a rectangle with rounded corners
+    pygame.draw.rect(screen, GREEN, [115, 210, 70, 40], 10, border_radius=15)
+    pygame.draw.rect(screen, RED, [135, 260, 50, 30], 0, border_radius=10, border_top_left_radius=0,
+                     border_bottom_right_radius=15)
 
-    # # Draw an ellipse outline, using a rectangle as the outside boundaries
-    # pygame.draw.ellipse(screen, RED, [225, 10, 50, 20], 2) 
+    # Draw an ellipse outline, using a rectangle as the outside boundaries
+    pygame.draw.ellipse(screen, RED, [225, 10, 50, 20], 2) 
 
-    # # Draw an solid ellipse, using a rectangle as the outside boundaries
-    # pygame.draw.ellipse(screen, RED, [300, 10, 50, 20]) 
+    # Draw an solid ellipse, using a rectangle as the outside boundaries
+    pygame.draw.ellipse(screen, RED, [300, 10, 50, 20]) 
  
-    # # This draws a triangle using the polygon command
-    # pygame.draw.polygon(screen, BLACK, [[100, 100], [0, 200], [200, 200]], 5)
+    # This draws a triangle using the polygon command
+    pygame.draw.polygon(screen, BLACK, [[100, 100], [0, 200], [200, 200]], 5)
   
-    # # Draw an arc as part of an ellipse. 
-    # # Use radians to determine what angle to draw.
-    # pygame.draw.arc(screen, BLACK,[210, 75, 150, 125], 0, pi/2, 2)
-    # pygame.draw.arc(screen, GREEN,[210, 75, 150, 125], pi/2, pi, 2)
-    # pygame.draw.arc(screen, BLUE, [210, 75, 150, 125], pi,3*pi/2, 2)
-    # pygame.draw.arc(screen, RED,  [210, 75, 150, 125], 3*pi/2, 2*pi, 2)
+    # Draw an arc as part of an ellipse. 
+    # Use radians to determine what angle to draw.
+    pygame.draw.arc(screen, BLACK,[210, 75, 150, 125], 0, pi/2, 2)
+    pygame.draw.arc(screen, GREEN,[210, 75, 150, 125], pi/2, pi, 2)
+    pygame.draw.arc(screen, BLUE, [210, 75, 150, 125], pi,3*pi/2, 2)
+    pygame.draw.arc(screen, RED,  [210, 75, 150, 125], 3*pi/2, 2*pi, 2)
     
-    # # Draw a circle
-    # pygame.draw.circle(screen, BLUE, [60, 250], 40)
+    # Draw a circle
+    pygame.draw.circle(screen, BLUE, [60, 250], 40)
 
-    # # Draw only one circle quadrant
-    # pygame.draw.circle(screen, BLUE, [250, 250], 40, 0, draw_top_right=True)
-    # pygame.draw.circle(screen, RED, [250, 250], 40, 30, draw_top_left=True)
-    # pygame.draw.circle(screen, GREEN, [250, 250], 40, 20, draw_bottom_left=True)
-    # pygame.draw.circle(screen, BLACK, [250, 250], 40, 10, draw_bottom_right=True)
+    # Draw only one circle quadrant
+    pygame.draw.circle(screen, BLUE, [250, 250], 40, 0, draw_top_right=True)
+    pygame.draw.circle(screen, RED, [250, 250], 40, 30, draw_top_left=True)
+    pygame.draw.circle(screen, GREEN, [250, 250], 40, 20, draw_bottom_left=True)
+    pygame.draw.circle(screen, BLACK, [250, 250], 40, 10, draw_bottom_right=True)
 
     pygame.draw.polygon_rounded(screen, BLUE, ((50,150), (150,150), (150, 250), (50, 250)), 50, 1)
     pygame.draw.polygon_rounded(screen, GREEN, ((0, 0), (0, 100), (100, 100)), 20, 10)

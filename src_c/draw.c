@@ -768,7 +768,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
     int x, y, result, l, r, radius, smoothing;
     int drawn_area[4] = {INT_MAX, INT_MAX, INT_MIN,
                          INT_MIN}; /* Used to store bounding box values */
-    Py_ssize_t loop, length, new_length, inner_loop;
+    Py_ssize_t loop, length, new_length;
     static char *keywords[] = {"surface", "color", "points", "radius", "smoothing", "width", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OOii|i", keywords,
@@ -863,6 +863,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
     int current_index   = 0;
     int previous_index  = 2; /* This is set to different from current_index to trigger on first entry of the loop*/
     int p0x, p0y, p1x, p1y, p2x, p2y;
+    p0x = p0y = p1x = p1y = p2x = p2y = 0;
     int dist_back_x, dist_back_y, dist_front_x, dist_front_y;
     double back_rad, front_rad;
     double t = 0;
