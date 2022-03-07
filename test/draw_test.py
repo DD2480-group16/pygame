@@ -4526,35 +4526,29 @@ class DrawRoundedPolygonMixin:
 
         Tests drawing a 2x2 square with 1 radius which should make a circle.
         """
-        surfw = surfh = 100
+        surfw = surfh = 10
         circle_color = pygame.Color("red")
         surface_color = pygame.Color("green")
         surface = pygame.Surface((surfw, surfh))
         surface.fill(surface_color)
 
-        points = ((0, 0), (30, 0), (30, 30), (0, 30))
-        radius = 0
-        smoothing = 5000
-        (cx, cy) = (15, 15)
+        points = ((0, 0), (2, 0), (2, 2), (0, 2))
+        radius = 1
+        smoothing = 10
+        (cx, cy) = (1, 1)
 
         dest_rect = self.draw_rounded_polygon(surface, circle_color, points, radius, smoothing)
 
         for pt in test_utils.rect_area_pts(dest_rect):
             x, y = pt
-            print(pt)
-            print(surface.get_at(pt))
             sqr_distance = (x - cx) ** 2 + (y - cy) ** 2
             if (radius + 1) ** 2 < sqr_distance < (radius - 1) ** 2:
-                #self.assertEqual(surface.get_at(pt), circle_color)
-                a = 1 + 1
+                self.assertEqual(surface.get_at(pt), circle_color)
             if (
                 sqr_distance < (radius - 1) ** 2
                 or sqr_distance > (radius + 1) ** 2
             ):
-                #self.assertEqual(surface.get_at(pt), surface_color)
-                a = 1 +1
-
-        self.assertEqual(a, 2)
+                self.assertEqual(surface.get_at(pt), surface_color)
 
 
 class DrawRoundedPolygonTest(DrawRoundedPolygonMixin, DrawTestCase):

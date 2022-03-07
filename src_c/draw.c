@@ -867,13 +867,13 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
     double back_rad, front_rad;
     double t = 0;
 
-    for(loop = 0; loop < length*(3+smoothing); ++loop) {
+    for(loop = 0; loop < length*(3+smoothing); loop++) {
         current_index = loop/(3+smoothing);
         if (previous_index != current_index){ /* This is where we find the new three base points per original point */
             previous_index = current_index;
 
-            p0x = xlist[(current_index - 1) % length]; /* length is of type ssize_t, hope it works and iplicity casts it */
-            p0y = ylist[(current_index - 1) % length];
+            p0x = xlist[(current_index - 1+length) % length]; /* length is of type ssize_t, hope it works and iplicity casts it */
+            p0y = ylist[(current_index - 1+length) % length];
 
             p1x = xlist[current_index];
             p1y = ylist[current_index];
@@ -882,7 +882,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
             p2y = ylist[(current_index + 1) % length];
 
             back_rad    = point_distance(p0x, p0y, p1x, p1y);
-            front_rad   = point_distance(p0x, p0y, p1x, p1y);
+            front_rad   = point_distance(p1x, p1y, p2x, p2y);
 
             /* Cap Radius at max half way distance */
             back_rad    = ((double) radius > (back_rad * 0.5d)) ? back_rad * 0.5d : (double) radius;
@@ -892,16 +892,16 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
             dist_back_y = (int) ((((double)(p0y - p1y)) / point_distance(p0x, p0y, p1x, p1y)) * back_rad);
 
             dist_front_x = (int) ((((double)(p2x - p1x)) / point_distance(p2x, p2y, p1x, p1y)) * front_rad);
-            dist_front_x = (int) ((((double)(p2y - p1y)) / point_distance(p2x, p2y, p1x, p1y)) * front_rad);
+            dist_front_y = (int) ((((double)(p2y - p1y)) / point_distance(p2x, p2y, p1x, p1y)) * front_rad);
 
             /* Assign The correct locations of p0 and p2 */
             p0x = p1x + dist_back_x;
             p0y = p1y + dist_back_y;
             p2x = p1x + dist_front_x;
-            p2y = p1y + dist_front_x;
+            p2y = p1y + dist_front_y;
         }
         /* Not sure how this works with casting between ints and ssize_t */
-        t = (((double)(loop%(3 + smoothing))) * (1.0d / (3.0d + ((double)smoothing))));
+        t = (((double)(loop%(3 + smoothing))) * (1.0d / (3.0d + ((double)smoothing-1))));
 
         x_list_new[loop] = (int) de_casteljau(p0x, p1x, p2x, t);
         y_list_new[loop] = (int) de_casteljau(p0y, p1y, p2y, t);
@@ -919,6 +919,9 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
         return RAISE(PyExc_RuntimeError, "error locking surface");
     }
 
+    l = x_list_new[0];
+    r = y_list_new[0];
+
     draw_fillpoly(surf, x_list_new, y_list_new, new_length, color, drawn_area);
     PyMem_Free(xlist);
     PyMem_Free(ylist);
@@ -935,7 +938,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
                            drawn_area[2] - drawn_area[0] + 1,
                            drawn_area[3] - drawn_area[1] + 1);
     else
-        return pgRect_New4(l, t, 0, 0);
+        return pgRect_New4(l, r, 0, 0);
 }
 
 static PyObject *
