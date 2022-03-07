@@ -769,11 +769,11 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
     int drawn_area[4] = {INT_MAX, INT_MAX, INT_MIN,
                          INT_MIN}; /* Used to store bounding box values */
     Py_ssize_t loop, length, new_length, inner_loop;
-    static char *keywords[] = {"surface", "color", "points", "width", "radius", "smoothing", NULL};
+    static char *keywords[] = {"surface", "color", "points", "radius", "smoothing", "width", NULL};
 
-    if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OO|i", keywords,
+    if (!PyArg_ParseTupleAndKeywords(arg, kwargs, "O!OOii|i", keywords,
                                      &pgSurface_Type, &surfobj, &colorobj,
-                                     &points, &width, &radius, &smoothing)) {
+                                     &points, &radius, &smoothing, &width)) {
         return NULL; /* Exception already set. */
     }
 
@@ -2684,6 +2684,8 @@ static PyMethodDef _draw_methods[] = {
      DOC_PYGAMEDRAWPOLYGON},
     {"rect", (PyCFunction)rect, METH_VARARGS | METH_KEYWORDS,
      DOC_PYGAMEDRAWRECT},
+    {"polygon_rounded", (PyCFunction)polygon_rounded, METH_VARARGS | METH_KEYWORDS,
+     DOC_PYGAMEDRAWROUNDEDPOLYGON},
 
     {NULL, NULL, 0, NULL}};
 

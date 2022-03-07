@@ -22,6 +22,7 @@
 #define DOC_PYGAMEGFXDRAWFILLEDPOLYGON "filled_polygon(surface, points, color) -> None\ndraw a filled polygon"
 #define DOC_PYGAMEGFXDRAWTEXTUREDPOLYGON "textured_polygon(surface, points, texture, tx, ty) -> None\ndraw a textured polygon"
 #define DOC_PYGAMEGFXDRAWBEZIER "bezier(surface, points, steps, color) -> None\ndraw a Bezier curve"
+#define DOC_PYGAMEGFXDRAWROUNDEDPOLYGON "polygon_rounded(surface, points, color, radius, smoothing) -> None\ndraw a rounded polygon"
 
 
 /* Docs in a comment... slightly easier to read. */

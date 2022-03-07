@@ -77,6 +77,9 @@ def filled_trigon(
 def polygon(
     surface: Surface, points: Sequence[Coordinate], color: ColorValue
 ) -> None: ...
+def polygon_rounded(
+    surface: Surface, points: Sequence[Coordinate], color: ColorValue, radius: int, smoothing: int
+) -> None: ...
 def aapolygon(
     surface: Surface, points: Sequence[Coordinate], color: ColorValue
 ) -> None: ...

@@ -22,13 +22,13 @@ def polygon(
     points: Sequence[Coordinate],
     width: int = 0,
 ) -> Rect: ...
-def rounded_polygon(
+def polygon_rounded(
     surface: Surface,
     color: ColorValue,
     points: Sequence[Coordinate],
-    width: int = 0,
     radius: int = 0,
     smoothing: int = 0,
+    width: int = 0,
 ) -> Rect: ...
 def circle(
     surface: Surface,

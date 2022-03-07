@@ -84,6 +84,8 @@ static PyObject *
 _gfx_texturedpolygon(PyObject *self, PyObject *args);
 static PyObject *
 _gfx_beziercolor(PyObject *self, PyObject *args);
+static PyObject *
+_gfx_roundedpolygoncolor(PyObject *self, PyObject *args);
 
 static PyMethodDef _gfxdraw_methods[] = {
     {"pixel", _gfx_pixelcolor, METH_VARARGS, DOC_PYGAMEGFXDRAWPIXEL},
@@ -116,6 +118,7 @@ static PyMethodDef _gfxdraw_methods[] = {
     {"textured_polygon", _gfx_texturedpolygon, METH_VARARGS,
      DOC_PYGAMEGFXDRAWTEXTUREDPOLYGON},
     {"bezier", _gfx_beziercolor, METH_VARARGS, DOC_PYGAMEGFXDRAWBEZIER},
+    {"polygon_rounded", _gfx_roundedpolygoncolor, METH_VARARGS, DOC_PYGAMEGFXDRAWROUNDEDPOLYGON},
     {NULL, NULL, 0, NULL},
 };
 
