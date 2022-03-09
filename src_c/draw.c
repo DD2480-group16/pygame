@@ -846,7 +846,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
         ylist[loop] = y;
     }
 
-    /* This is where the magic happens */
+    /* Start of rounding section */
 
     /* I assume all points are handled as integers since pixels are discrete. */
 
@@ -909,7 +909,7 @@ polygon_rounded(PyObject *self, PyObject *arg, PyObject *kwargs)
 
     }
 
-    /* This is where the magic ends (except for some PyMem_Free a bit down)*/
+    /* End of rounding section (except for some PyMem_Free a bit down)*/
 
     if (!pgSurface_Lock(surfobj)) {
         PyMem_Free(xlist);
