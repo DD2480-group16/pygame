@@ -549,41 +549,6 @@ def draw_polygon(surface, color, points, width):
     return  # TODO Rect(...)
 
 
-def draw_polygon_rounded(surface, color, points, width, radius, smoothing):
-    #Get Rounded Polygon
-    rounded_points = _get_polygon_rounded(points, radius, smoothing)
-
-    # Remove duplicate Points
-
-
-    # Perform The De Casteljau Algorithm 'smoothing' times
-    draw_polygon(surface, color, points, width)
-
-def _get_polygon_rounded(points, radius, smoothing):
-    # Insert new Points with Distance Radius between existing points
-    num_points = len(points)
-    final_points = []
-
-    for i in range(num_points):
-        smooth_curve_segment = []
-        dist_back = point_dist(points[i], points[i-1])
-        dist_front = point_dist(points[i], points[(i+1)% num_points])
-
-        rad_back = min(point_dist(points[i], points[i-1])/2, radius)
-        rad_front = min(point_dist(points[i], points[(i+1) % num_points])/2, radius)
-
-        dist_vec_back = [((points[i-1][0] - points[i][0])/dist_back)*rad_back, ((points[i-1][1] - points[i][1])/dist_back)*rad_back]
-        dist_vec_front = [((points[(i+1) % num_points][0] - points[i][0])/dist_front)*rad_front, ((points[(i+1) % num_points][1] - points[i][1])/dist_front)*rad_front]
-
-        smooth_curve_segment.append([points[i][0] + dist_vec_back[0], points[i][1] + dist_vec_back[1]])
-        smooth_curve_segment.append(points[i])  # Add original point
-        smooth_curve_segment.append([points[i][0] + dist_vec_front[0], points[i][1] + dist_vec_front[1]])
-
-        final_points.append(de_castilejou_algortihm(smooth_curve_segment, radius, smoothing))
-        final_points = _remove_duplicate_points(final_points)
-    return final_points
-
-
 def _remove_duplicate_points(points):
     """
     Removes any neighbouring duplicate vertices from a polygon
